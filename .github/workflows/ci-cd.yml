@@ -1,0 +1,123 @@
+name: WorkHub CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "18"
+
+jobs:
+  quality-checks:
+    name: 코드 품질 검사
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 🔍 1단계 - TypeScript 타입 체크
+        run: |
+          echo "🔍 TypeScript 타입 검사 시작..."
+          npm run type-check
+          echo "✅ 타입 체크 완료!"
+
+      - name: 🧹 2단계 - ESLint 코드 품질 체크
+        run: |
+          echo "🧹 ESLint 코드 품질 검사 시작..."
+          npm run lint
+          echo "✅ 린트 체크 완료!"
+
+      - name: 🏗️ 3단계 - Next.js 빌드 테스트
+        run: |
+          echo "🏗️ 애플리케이션 빌드 시작..."
+          npm run build
+          echo "✅ 빌드 성공!"
+
+      - name: 📊 빌드 결과 확인
+        run: |
+          if [ -d ".next" ]; then
+            echo "✅ .next 폴더 생성 확인"
+            echo "📁 빌드 결과:"
+            ls -la .next/
+          else
+            echo "❌ 빌드 실패 - .next 폴더가 없습니다"
+            exit 1
+          fi
+
+  deploy-preview:
+    name: 🚀 미리보기 배포 (PR)
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Vercel 미리보기 배포
+        uses: amondnet/vercel-action@v25
+        id: vercel-preview
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
+          github-comment: true
+
+      - name: 배포 결과 알림
+        run: |
+          echo "🎉 미리보기 배포 완료!"
+          echo "🔗 미리보기 URL: ${{ steps.vercel-preview.outputs.preview-url }}"
+
+  deploy-production:
+    name: 🚀 프로덕션 배포 (Main)
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Vercel 프로덕션 배포
+        uses: amondnet/vercel-action@v25
+        id: vercel-production
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
+          vercel-args: "--prod"
+          github-comment: true
+
+      - name: 배포 완료 알림
+        run: |
+          echo "🎉 프로덕션 배포 완료!"
+          echo "🌐 라이브 URL: ${{ steps.vercel-production.outputs.preview-url }}"
+          echo "📧 배포 알림을 확인하세요."
+
+  notify-failure:
+    name: 🚨 실패 알림
+    runs-on: ubuntu-latest
+    needs: [quality-checks, deploy-preview, deploy-production]
+    if: failure()
+
+    steps:
+      - name: 실패 원인 분석
+        run: |
+          echo "🚨 CI/CD 파이프라인 실패!"
+          echo "🔍 다음 사항을 확인하세요:"
+          echo "   - TypeScript 컴파일 에러"
+          echo "   - ESLint 규칙 위반"
+          echo "   - 빌드 과정 에러"
+          echo "   - 환경변수 설정"
