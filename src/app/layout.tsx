@@ -1,3 +1,4 @@
+import AuthProvider from "@/components/provider/AuthProvider";
 import "./globals.css";
 
 export default function RootLayout({
@@ -7,7 +8,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
