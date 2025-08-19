@@ -28,6 +28,11 @@ const handler = NextAuth({
   pages: {
     signIn: "/auth/signin",
   },
+  callbacks: {
+    async redirect({ url, baseUrl }) {
+      return `${baseUrl}/`;
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
