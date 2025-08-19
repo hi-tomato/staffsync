@@ -71,7 +71,7 @@ jobs:
         id: vercel-preview
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-org-id: "junis-projects-a9e38f6a"
           vercel-project-id: ${{ secrets.PROJECT_ID }}
           github-comment: true
 
@@ -95,7 +95,7 @@ jobs:
         id: vercel-production
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-org-id: "junis-projects-a9e38f6a"
           vercel-project-id: ${{ secrets.PROJECT_ID }}
           vercel-args: "--prod"
           github-comment: true
